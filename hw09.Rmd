@@ -1,0 +1,198 @@
+---
+title: "Analysis on Shakespeare"
+author: "Shihua Lu"
+date: "`r lubridate::today()`"
+output: 
+   github_document:
+     toc: true
+     theme_set(theme_minimal())
+---
+
+```{r setup, include=FALSE}
+# set options
+options(stringsAsFactors = F)         # no automatic data transformation
+options("scipen" = 100, "digits" = 4) # suppress math annotation
+library(tidyverse)
+library(tidytext)
+library(stringr)
+library(tm)
+library(wordcloud)
+library(ggplot2)
+library(dplyr)
+```
+
+For HW09, I am doing a sentiment analysis for Shakespeare's works. I have chosen three tragedies: Macbeth, Romeo and Juliet, Hamlet and three comedies: Midnight Summer's Dream, As you Like it, The Merchant of Venice. The goal of this project is to see whether the results of my sentiment analysis can show if a play is a tragedy or comedy. The definition of what a tragedy is is always under debate in the field of Art, film studies, Aesthetics and philosophy. Sometimes I get a little bored, just for reading too much theoretical content. Let's see if the debate can be solved by data analysis. 
+
+# load data 
+```{r load data, warning = FALSE}
+# Tragedies
+romeo <- read.delim("The Tragedy of Romeo and Juliet.txt")
+macbeth <- read.delim("Macbeth")
+hamlet <- read.delim("Hamlet")
+# Comedies
+asyoulikeit <- read.delim("As You Like It")
+midnight <- read.delim("midnight summer")
+venice <- read.delim("The Merchant of Venice ")
+```
+# create corpus 
+```{r corpus, warning=FALSE}
+preprocessing = function (doc){
+   doc = gsub("[^[:alnum:]]"," ",doc)
+   #create corpus
+   corpus = Corpus(VectorSource(doc))
+   #Removal of punctuation
+   corpus = tm_map(corpus, removePunctuation)
+   #Removal of numbers
+   corpus = tm_map(corpus, removeNumbers)
+   #Conversion to lower case
+   corpus = tm_map(corpus, content_transformer(tolower)) 
+   #customize my stopwords
+   mystopword = data("stop_words")
+   #Removal of stopwords
+   corpus = tm_map(corpus, removeWords, c(stopwords("english"),mystopword))
+   return(corpus)
+}
+romeo.cleaned = preprocessing(romeo)
+macbeth.cleaned = preprocessing(macbeth)
+hamlet.cleaned = preprocessing(hamlet)
+asyoulikeit.cleaned = preprocessing(asyoulikeit)
+midnight.cleaned = preprocessing(midnight)
+venice.cleaned = preprocessing(venice)
+```
+# Data Visualization: word cloud
+```{r, warning=FALSE}
+par(mfrow=c(2,3)) 
+par(mar=c(2, 3, 2, 3)) # Set the plot margin
+par(bg="black") # set background color as black
+par(col.main="white") # set title color as white
+wordcloud(romeo.cleaned, scale=c(4,.5),min.freq=3, max.words=Inf, random.order=F, 
+           colors = brewer.pal(8, "Set3"))   
+title("Romeo and Juliet")
+wordcloud(macbeth.cleaned, scale=c(4,.5),min.freq=3, max.words=Inf, random.order=F, 
+           colors = brewer.pal(8, "Set3"))   
+title("Macbeth")
+wordcloud(hamlet.cleaned, scale=c(4,.5),min.freq=3, max.words=Inf, random.order=F, 
+           colors = brewer.pal(8, "Set3"))   
+title("Hamlet")
+wordcloud(asyoulikeit.cleaned, scale=c(4,.5),min.freq=3, max.words=Inf, random.order=F, 
+           colors = brewer.pal(8, "Set3"))   
+title("As You Like It")
+wordcloud(midnight.cleaned, scale=c(4,.5),min.freq=3, max.words=Inf, random.order=F, 
+           colors = brewer.pal(8, "Set3"))   
+title("Midnight Summer's Dream")
+wordcloud(venice.cleaned, scale=c(4,.5),min.freq=3, max.words=Inf, random.order=F, 
+           colors = brewer.pal(8, "Set3"))   
+title("The Merchant of Venice")
+
+```
+# Data Visualization: Word Frequency
+```{r word frequency, warning=FALSE}
+romeo.dtm = DocumentTermMatrix(romeo.cleaned)
+ findFreqTerms(romeo.dtm, 5)
+macbeth.dtm = DocumentTermMatrix(macbeth.cleaned)
+ findFreqTerms(macbeth.dtm, 5)
+hamlet.dtm = DocumentTermMatrix(hamlet.cleaned)
+ findFreqTerms(hamlet.dtm, 5)
+asyoulikeit.dtm = DocumentTermMatrix(asyoulikeit.cleaned)
+ findFreqTerms(asyoulikeit.dtm, 5)
+midnight.dtm = DocumentTermMatrix(midnight.cleaned)
+ findFreqTerms(midnight.dtm, 5)
+venice.dtm = DocumentTermMatrix(venice.cleaned)
+ findFreqTerms(venice.dtm, 5)
+## visualization 
+par(mfrow=c(2,3))
+par(bg="white")
+par(col.main="black")
+ freq = sort(colSums(as.matrix(romeo.dtm)), decreasing=TRUE) 
+ barplot(freq[1:10],col=rev(brewer.pal(9, "GnBu")), horiz=TRUE)
+ title("Romeo and Juliet")
+ freq = sort(colSums(as.matrix(macbeth.dtm)), decreasing=TRUE) 
+ barplot(freq[1:10], col=rev(brewer.pal(9, "GnBu")), horiz=TRUE)
+ title("Macbth")
+ freq = sort(colSums(as.matrix(hamlet.dtm)), decreasing=TRUE) 
+ barplot(freq[1:10], col=rev(brewer.pal(9, "GnBu")), horiz=TRUE)
+ title("Hamlet")
+freq = sort(colSums(as.matrix(asyoulikeit.dtm)), decreasing=TRUE) 
+ barplot(freq[1:10],col=rev(brewer.pal(9, "PuRd")), horiz=TRUE)
+ title("As You Like It")
+ freq = sort(colSums(as.matrix(venice.dtm)), decreasing=TRUE) 
+ barplot(freq[1:10], col=rev(brewer.pal(9, "PuRd")), horiz=TRUE)
+ title("The Merchant of Venice")
+ freq = sort(colSums(as.matrix(midnight.dtm)), decreasing=TRUE) 
+ barplot(freq[1:10], col=rev(brewer.pal(9, "PuRd")), horiz=TRUE)
+ title("The Midnight Summer's Dream")
+```
+# Sentiment Analysis
+## sentiment score - Bing
+```{r}
+# download sentiment datasets
+get_sentiments("afinn")
+get_sentiments("bing")
+get_sentiments("nrc")
+
+GetSentiment <- function(playname){
+  playname %>% 
+    unnest_tokens(word, Text) %>%
+    inner_join(get_sentiments("bing")) %>%# pull out only sentiment words
+      count(sentiment) %>% # count the # of positive & negative words
+      spread(sentiment, n, fill = 0) %>% # made data wide rather than narrow
+      mutate(sentiment = positive - negative) %>% # # of positive words - # of negative owrds
+
+    # return our sentiment dataframe
+    return(sentiment)
+}
+romeo_score = GetSentiment(romeo),
+hamlet_score = GetSentiment(hamlet),
+macbeth_score = GetSentiment(macbeth),
+asyoulikeit_score = GetSentiment(asyoulikeit),
+midnight_score = GetSentiment(midnight),
+venice_score = GetSentiment(venice)
+
+sentimentscore <- tribble(
+  ~name, ~negative, ~positive, ~sentiment,
+  "Hamlet", 1321, 1339, 18,
+  "Macbeth", 530, 498, -32,
+  "Romeo and Juliet", 1282, 1202, -80,
+  "Midnight Summer's Dream", 682, 790, 108,
+  "The Merchant of Venice", 462, 651, 189,
+  "As You Like It", 832, 1106, 274
+)
+sentimentscore %>%
+  ggplot(aes(x = name)) + 
+  geom_line(mapping = aes(y = negative, group=1, color = "negative")) +
+  geom_line(mapping = aes(y = positive, group=1, color = "positive" )) +
+  geom_line(mapping = aes(y = sentiment, group=1, color = "sentiment")) +
+  labs(title = "Sentiment Analysis Score",
+        subtitle = "Using BING package",
+        x = "play names",
+        y = "Score")
+  
+```
+## top emotional words - NRC
+```{r}
+nrc_plot = function(playname){  
+  playname %>% 
+    unnest_tokens(word, Text) %>%
+    inner_join(get_sentiments("nrc")) %>%
+   count(word, sentiment, sort = TRUE) %>%
+   group_by(sentiment) %>%
+   slice_max(n, n = 10) %>%
+  mutate(word = reorder(word, n)) %>%
+  ggplot(aes(n, word, fill = sentiment)) +
+   geom_col(show.legend = FALSE) +
+   facet_wrap(vars(sentiment), scales = "free_y") +
+   labs(title = "Number of Occurence of Top Emotional Words",
+        x = "Number of Occurence",
+        y = NULL)
+}
+nrc_plot(venice)
+nrc_plot(romeo)
+nrc_plot(macbeth)
+nrc_plot(asyoulikeit)
+nrc_plot(hamlet)
+nrc_plot(midnight)
+```
+##
+```{r}
+
+```
