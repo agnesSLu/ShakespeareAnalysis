@@ -3,9 +3,7 @@ title: "Analysis on Shakespeare"
 author: "Shihua Lu"
 date: "`r lubridate::today()`"
 output: 
-   github_document:
-     toc: true
-     theme_set(theme_minimal())
+   github_document
 ---
 
 ```{r setup, include=FALSE}
