@@ -141,11 +141,11 @@ GetSentiment <- function(playname){
     # return our sentiment dataframe
     return(sentiment)
 }
-romeo_score = GetSentiment(romeo),
-hamlet_score = GetSentiment(hamlet),
-macbeth_score = GetSentiment(macbeth),
-asyoulikeit_score = GetSentiment(asyoulikeit),
-midnight_score = GetSentiment(midnight),
+romeo_score = GetSentiment(romeo)
+hamlet_score = GetSentiment(hamlet)
+macbeth_score = GetSentiment(macbeth)
+asyoulikeit_score = GetSentiment(asyoulikeit)
+midnight_score = GetSentiment(midnight)
 venice_score = GetSentiment(venice)
 
 sentimentscore <- tribble(
@@ -170,20 +170,21 @@ sentimentscore %>%
 ```
 ## top emotional words - NRC
 ```{r}
+
 nrc_plot = function(playname){  
   playname %>% 
-    unnest_tokens(word, Text) %>%
-    inner_join(get_sentiments("nrc")) %>%
-   count(word, sentiment, sort = TRUE) %>%
-   group_by(sentiment) %>%
-   slice_max(n, n = 10) %>%
+  unnest_tokens(word, Text) %>%
+  inner_join(get_sentiments("nrc")) %>%
+  count(word, sentiment, sort = TRUE) %>%
+  group_by(sentiment) %>%
+  slice_max(n, n = 10) %>%
   mutate(word = reorder(word, n)) %>%
   ggplot(aes(n, word, fill = sentiment)) +
-   geom_col(show.legend = FALSE) +
-   facet_wrap(vars(sentiment), scales = "free_y") +
-   labs(title = "Number of Occurence of Top Emotional Words",
-        x = "Number of Occurence",
-        y = NULL)
+  geom_col(show.legend = FALSE) +
+  facet_wrap(vars(sentiment), scales = "free_y") +
+  labs(title = "Number of Occurence of Top Emotional Words",
+       x = "Number of Occurence",
+       y = NULL)
 }
 nrc_plot(venice)
 nrc_plot(romeo)
@@ -192,7 +193,27 @@ nrc_plot(asyoulikeit)
 nrc_plot(hamlet)
 nrc_plot(midnight)
 ```
-##
+## top emotional words - Afinn
 ```{r}
-
+afinn_plot = function(playname){  
+  playname %>% 
+  unnest_tokens(word, Text) %>%
+  inner_join(get_sentiments("afinn")) %>%
+  count(word, value, sort = TRUE) %>%
+  group_by(value) %>%
+  slice_max(n, n = 10) %>%
+  mutate(word = reorder(word, n)) %>%
+  ggplot(aes(n, word, fill = value)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(vars(value), scales = "free_y") +
+  labs(title = "Top Emotional Words Grouped by AFinn package",
+       x = "Number of Occurence",
+       y = NULL)
+} 
+afinn_plot(venice)
+afinn_plot(romeo)
+afinn_plot(macbeth)
+afinn_plot(asyoulikeit)
+afinn_plot(hamlet)
+afinn_plot(midnight)
 ```
