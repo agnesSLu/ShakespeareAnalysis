@@ -1,5 +1,6 @@
 # Analysis on Shakespeare
 # Shihua Lu
+# This project was completed in 2022 when I was at the University of Chicago.
 
 1. packages used:
 library(tidyverse)
